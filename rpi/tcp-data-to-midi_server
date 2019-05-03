@@ -52,20 +52,11 @@ init_sleep_secs = 5
 import socket
 import sys
 
-# number of characters to wait for
+# number of characters (bytes) to wait for
 data_intake_limit = 80
 
 # server address/port
 server_address = ("172.24.1.1", 1234)
-
-# tcp server object
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(server_address)
-
-# Listen for incoming connections
-sys.stderr.write('starting up on %s port %s\n' % server_address)
-sock.listen(1)
-
 
 ########################################################################
 #
@@ -102,7 +93,11 @@ def update_midi(data_keyvals):
             #   send midi data
 
 #
-# this sets up the midi device via system and amidithru
+# check_for_running_midi returns true if amidithru with the
+# desired name is running already
+#
+# If so, assume to use that, since it's probably leftover
+# from an earlier test/change.
 #
 
 def check_for_running_midi():
@@ -116,6 +111,10 @@ def check_for_running_midi():
     # 256/anything else = nope
     return check
 
+#
+# this sets up the midi device via system and amidithru
+#
+
 def setup_midi_backend():
     # set up backend
     mido.set_backend('mido.backends.rtmidi')
@@ -124,6 +123,8 @@ def setup_midi_backend():
     if check_for_running_midi() != 0:
         runCmd = "amidithru '" + midiName + "' &"
         os.system(runCmd)
+        # wait a sec for amidithru to do it's thing
+        time.sleep(1)
     
     # regex to match on rtmidi port name convention
     # TODO is it necessary to write:  "\s+(\d+)?:\d+)"  instead?
@@ -180,15 +181,24 @@ def analog_to_midival(data):
 #
 
 def start_tcp_to_midi_server():
+    # wait some secs
     time.sleep(init_sleep_secs)
 
+    # maybe start midi output device
     setup_midi_backend()
+
+    # tcp server object, create it
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(server_address)
+
+    # Listen for incoming connections
+    sys.stderr.write('starting up on %s port %s\n' % server_address)
+    sock.listen(1)
 
     while True:
         # Wait for a connection
         connection, client_address = sock.accept()
         try:
-    
             # Receive the data in small chunks and deal with it
             while True:
                 data = connection.recv(data_intake_limit).decode('utf-8')
