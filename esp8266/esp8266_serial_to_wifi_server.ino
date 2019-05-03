@@ -1,16 +1,21 @@
 /*
- *  ESP - Read serial data and send to remote server
+ *  ESP8266 serial reader, push data to WiFi 
+ *  
+ *  by William Hofferbert
+ *  
+ *  Read serial data and send to remote server
+ *  
+ *  some bits were gleaned from the internet (processIncomingByte)
  */
 
 #include <ESP8266WiFi.h>
 
+// wifi connections... default modep info
 const char* ssid     = "MODEP";
 const char* password = "blokaslabs";
 
+// IP address of the host we push to
 IPAddress host(172,24,1,1);
-
-// max line size
-const unsigned int MAX_INPUT = 80;
 
 // tcp server port
 const unsigned int httpPort = 1234;
@@ -18,11 +23,18 @@ const unsigned int httpPort = 1234;
 // wait time
 const unsigned int wait_ms = 10;
 
+// max line size
+const unsigned int MAX_INPUT = 80;
+
 // WiFiClient in global scope
 WiFiClient client;
 
-// ideas...
-// disable nagle algorythm
+/*
+ * ideas...
+ * disable nagle algorythm
+ * mmmm...
+ * 
+ */ 
 
 void setup() {
   Serial.begin(115200);
@@ -30,10 +42,12 @@ void setup() {
   // We start by connecting to a WiFi network
   WiFi.begin(ssid, password);
 
+  // wait for wifi to connect
   while (WiFi.status() != WL_CONNECTED) {
     delay(wait_ms);
   }
-  
+
+  // wait for connection to remote server
   while (! client.connect(host, httpPort)) {
     delay(wait_ms);
   }
@@ -76,7 +90,6 @@ void processIncomingByte (const byte inByte) {
     break;
 
   }  // end of switch
-   
 } 
 
 void loop() {
