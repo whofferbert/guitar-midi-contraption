@@ -1,3 +1,14 @@
+/*
+ * Teensy Serial Communicator
+ * 
+ * by William Hofferbert
+ * 
+ * passes analog signals over to another device via serial
+ * 
+ * could possibly be used with anything, but this project  
+ * uses an ESP8266
+ */
+
 #include <ResponsiveAnalogRead.h>
 #include <Bounce2.h>
 
