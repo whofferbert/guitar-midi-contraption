@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+# by William Hofferbert
+#
+# This is a TCP server, which listens for information that is being
+# broadcast at it via a combination of Teensy LC (analog monitor)
+# and ESP8266 (serial data intake to Wifi)
+#
+# You need to set up the appropriate objects based on their key name
+# that will be within the data coming from the teensy/ESP
+#
+# This project uses A1, A2, A3, A4 for 4 analog keys (potentiometers)
+# and it uses D1, D2, for two digital keys (switches)
+#
+
+########################################################################
+#
+#
+# midi variable definitions/imports
+#
+#
+########################################################################
+
+import mido
+import os
+import re
+import time
+from midiThing import midiThing
+
+# midi device naming and setup
+midiName = "Teensy-ESP-WiFi-MIDI"
+
+# key name as it appears in tcp data = midiThing(midiChannel, midiCcNumber, initial value)
+A1 = midiThing(0, 7, 64)
+A2 = midiThing(0, 8, 64)
+A3 = midiThing(0, 9, 64)
+A4 = midiThing(0, 10, 64)
+
+D1 = midiThing(0, 11, 0)
+D2 = midiThing(0, 12, 0)
+
+# wait some seconds for other software after reboot
+init_sleep_secs = 5
+
+########################################################################
+#
+#
+# TCP server definitions/imports
+#
+#
+########################################################################
+
+import socket
+import sys
+
+# number of characters to wait for
+data_intake_limit = 80
+
+# server address/port
+server_address = ("172.24.1.1", 1234)
+
+# tcp server object
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind(server_address)
+
+# Listen for incoming connections
+sys.stderr.write('starting up on %s port %s\n' % server_address)
+sock.listen(1)
+
+
+########################################################################
+#
+#
+# midi definitions/functions
+#
+#
+########################################################################
+
+#
+# sends a midi control change message to midi_output_device, which
+# was created earlier
+#
+
+def send_cc(channel, ccnum, val):
+    msg = mido.Message('control_change', channel=channel, control=ccnum, value=val)
+    output = mido.open_output(midi_output_device)
+    output.send(msg)
+
+#
+# iterate through midi things and see if we need to send CC messages
+#
+
+# TODO this sub needs to be built out properly.
+# 
+
+def update_midi(data_keyvals):
+    #print(data_keyvals)
+    for key, val in data_keyvals.items():
+        #myObj = globals()[self.]
+        globals()[key].update(val)
+        if globals()[key].has_changed():
+            print("key: ", str(key), " has changed to: ", str(val))
+            #   send midi data
+
+#
+# this sets up the midi device via system and amidithru
+#
+
+def check_for_running_midi():
+    # TODO make this better
+    # so shitty, not pythonic at all
+    # if only I weren't a linux sysadmin
+    checkGrep = 'ps -ef | grep -Po "amidithru\s*' + midiName + '" | grep -v grep >/dev/null'
+    check = os.system(checkGrep)
+    #print("check val is %s" % check)
+    # 0 = running
+    # 256/anything else = nope
+    return check
+
+def setup_midi_backend():
+    # set up backend
+    mido.set_backend('mido.backends.rtmidi')
+
+    # system command to set up the midi thru port
+    if check_for_running_midi() != 0:
+        runCmd = "amidithru '" + midiName + "' &"
+        os.system(runCmd)
+    
+    # regex to match on rtmidi port name convention
+    # TODO is it necessary to write:  "\s+(\d+)?:\d+)"  instead?
+    nameRegex = "(" + midiName + ":" + midiName + "\s+\d+:\d+)"
+    matcher = re.compile(nameRegex)
+    newList = list(filter(matcher.match, mido.get_output_names()))
+    # all to get the name of the thing we just made
+    global midi_output_device
+    midi_output_device = newList[0]
+
+
+########################################################################
+#
+#
+# TCP defs/funcs
+#
+#
+########################################################################
+
+#
+# this picks apart the data from the teensy/esp and passes the sanitized
+# information over to update_midi()
+#
+
+def analog_to_midival(data):
+    arr = data.split(";")
+    midi_data = {}
+    for item in arr:
+        bits = item.split(":")
+        if (2 != len(bits)):
+            # is this okay? will printing 'data' here ever cause issues?
+            print('bad split: %s' % data, file=sys.stderr, flush=True)
+            return
+        a_or_d = ""
+        try:
+            a_or_d = bits[0][0];
+        except:
+            print('bad split: %s' % data, file=sys.stderr, flush=True)
+            return
+        if (a_or_d == 'A'):
+            midival = (int(bits[1]) * 127) / 1024
+            truncate = '%.02f' % midival
+            midi_data[bits[0]] = truncate
+        if (a_or_d == 'D'):
+            midival = (int(bits[1]) * 127)
+            midi_data[bits[0]] = midival
+    # dict gets passed to another def for handling...
+    update_midi(midi_data)
+
+
+#
+# This bit is in charge of getting the ball rolling and waiting for the
+# teensy/esp to start going
+#
+
+def start_tcp_to_midi_server():
+    time.sleep(init_sleep_secs)
+
+    setup_midi_backend()
+
+    while True:
+        # Wait for a connection
+        connection, client_address = sock.accept()
+        try:
+    
+            # Receive the data in small chunks and deal with it
+            while True:
+                data = connection.recv(data_intake_limit).decode('utf-8')
+                if data:
+                    analog_to_midival(data)
+                else:
+                    #print('some warning', file=sys.stderr)
+                    break
+                
+        finally:
+            # Clean up the connection
+            connection.close()
+
+#
+# hey, you can import this if you want (but don't forget about midiThing)
+#
+
+if __name__ == "__main__":
+    start_tcp_to_midi_server()
