@@ -13,10 +13,10 @@
 #include <Bounce2.h>
 
 // (de)bouncing the switches
+const int button_ms_delay = 20;
 
 const int pb1_pin = 2;
 const int pb2_pin = 5;
-const int button_ms_delay = 20;
 
 Bounce pb1 = Bounce();
 Bounce pb2 = Bounce();
@@ -34,6 +34,8 @@ void setup() {
   
   // taking to serial2 (esp8266) 115200
   Serial2.begin(115200);
+  //Serial2.begin(31250);
+  //Serial2.begin(500000);
   
   // switches are pulled high internally
   // short to ground when connected
@@ -72,6 +74,7 @@ void send_data_to_esp() {
   Serial2.print(";D2:");
   Serial2.print(pb2.read());
   Serial2.println();
+  Serial2.println();
 }
 
 void loop() {
@@ -80,5 +83,7 @@ void loop() {
   update_all_analogs();
   update_all_switches();
   send_data_to_esp();
-  delay(16);
+  // 16ms delay ~~ 60hz
+  //delay(16);
+  delay(1);
 }
