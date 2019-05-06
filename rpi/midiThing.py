@@ -13,7 +13,10 @@ class midiThing(object):
         self.current = value
 
     def has_changed(self):
-        if (self.last != self.current):
+        # maybe this should be better...
+
+        # testing comparing these as ints...
+        if (int(float(self.last)) != int(float(self.current))):
              return 1
         else:
              return 0
