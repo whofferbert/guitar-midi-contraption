@@ -61,6 +61,7 @@ void process_data (const char * data) {
   //  wait_till_wifi_connected();
   //}
   client.print(data);  
+  client.println();
 }
 
 void processIncomingByte (const byte inByte) {
