@@ -91,6 +91,12 @@ def update_midi(data_keyvals):
         if globals()[key].has_changed():
             print("key: ", str(key), " has changed to: ", str(val))
             #   send midi data
+            channel = globals()[key].channel
+            ccNum = globals()[key].ccNum
+            print(val)
+            print(type(val))
+            midiVal = int(val)
+            #send_cc(channel, ccNum, midiVal)
 
 #
 # check_for_running_midi returns true if amidithru with the
