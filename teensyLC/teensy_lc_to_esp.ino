@@ -73,8 +73,11 @@ void send_data_to_esp() {
   Serial2.print(pb1.read());
   Serial2.print(";D2:");
   Serial2.print(pb2.read());
-  Serial2.println();
-  Serial2.println();
+  // end the sequence with a bang
+  // for logic on the pi
+  Serial2.print("!");
+  // println for the esp state machine
+  Serial2.println("");
 }
 
 void loop() {
@@ -83,7 +86,8 @@ void loop() {
   update_all_analogs();
   update_all_switches();
   send_data_to_esp();
-  // 16ms delay ~~ 60hz
-  //delay(16);
-  delay(1);
+  //some delay here, to help not just overwhelm things
+  //16 ~ 60hz
+  delay(16);
+  //delay(1);
 }
