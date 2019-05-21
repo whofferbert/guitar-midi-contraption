@@ -20,24 +20,24 @@ IPAddress host(172,24,1,1);
 // tcp server port
 const unsigned int httpPort = 1234;
 
-// wait time
+// wait delay time
 const unsigned int wait_ms = 10;
 
 // max line size
-const unsigned int MAX_INPUT = 80;
+// some small power of 2 ... 10^2
+const unsigned int MAX_INPUT = 100;
 
 // WiFiClient in global scope
 WiFiClient client;
 
 /*
- * ideas...
- * disable nagle algorythm
- * mmmm...
- * 
+ * space reserved for ideas
  */ 
 
 void setup() {
   Serial.begin(115200);
+  //Serial.begin(31250);
+  //Serial.begin(500000);
 
   // We start by connecting to a WiFi network
   WiFi.begin(ssid, password);
@@ -52,16 +52,16 @@ void setup() {
     delay(wait_ms);
   }
 
+  // Disable nagle alg.
+  client.setNoDelay(true);
+
 }
 
 
 void process_data (const char * data) {
   // push to wifi destination
-  //if (WiFi.status() != WL_CONNECTED) {
-  //  wait_till_wifi_connected();
-  //}
-  client.print(data);  
-  client.println();
+  
+  client.print(data);
 }
 
 void processIncomingByte (const byte inByte) {
@@ -80,7 +80,7 @@ void processIncomingByte (const byte inByte) {
       input_pos = 0;  
       break;
 
-    case '\r':   // discard carriage return
+    case '\r':   // discard carriage return, probably unneeded
       break;
 
     default:
