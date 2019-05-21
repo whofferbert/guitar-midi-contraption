@@ -39,7 +39,7 @@ D1 = midiThing(0, 11, 0)
 D2 = midiThing(0, 12, 0)
 
 # wait some seconds for other software after reboot
-init_sleep_secs = 5
+init_sleep_secs = 2
 
 ########################################################################
 #
@@ -53,7 +53,9 @@ import socket
 import sys
 
 # number of characters (bytes) to wait for
-data_intake_limit = 80
+# should be a small power of 2 (ie 4096) re: https://docs.python.org/3/library/socket.html
+data_intake_limit = 128
+#data_intake_limit = 1024
 
 # server address/port
 server_address = ("172.24.1.1", 1234)
@@ -83,17 +85,24 @@ def send_cc(channel, ccnum, val):
 def update_midi(data_keyvals):
     for key, val in data_keyvals.items():
         # update the object we are dealing with
-        globals()[key].update(val)
-        # if any objects have changed values
-        if globals()[key].has_changed():
-            print("key: ", str(key), " has changed to: ", str(int(float(val))))
-            #   send midi data
-            channel = globals()[key].channel
-            ccNum = globals()[key].ccNum
-            #print(val)
-            #print(type(val))
-            midiVal = int(float(val))
-            send_cc(channel, ccNum, midiVal)
+        try:
+            keyObj = globals()[key]
+            keyObj.update(val)
+            # if any objects have changed values
+            if globals()[key].has_changed():
+                #   send midi data
+                channel = keyObj.channel
+                ccNum = keyObj.ccNum
+                midiVal = int(float(val))
+                if (midiVal < 0 or midiVal > 127):
+                    print("BAD VAL: key:", str(key), " changed to:", str(val))
+                    next
+                else:
+                    print("key:", str(key), " has changed to:", str(val))
+                    send_cc(channel, ccNum, midiVal)
+        except KeyError:
+            print("Got bad key:", key)
+            next
 
 #
 # check_for_running_midi returns true if amidithru with the
@@ -148,6 +157,41 @@ def setup_midi_backend():
 ########################################################################
 
 #
+# This class sets up a rolling string that we do regex matches on to find 
+# new data that we can work with.
+#
+
+class dataIntake(object):
+    def __init__(self):
+        self.data = ""
+
+    def update(self, value):
+        self.data += value
+        #self.current = value
+
+    def get_workable_data(self):
+        # return array of bits that match what we can
+        # TODO this might be more complicated than it needs to be
+        # perhaps just split on ! and investigate those parts
+        regex = r'(([AD]\d+:\d+;)+([AD]\d+:\d+))!'
+        # match on all possible bits
+        matches = re.findall(regex, self.data)
+        myRet = []
+        if matches:
+            i = 0
+            for m in matches:
+                # first matching group (long str except !) is the key here
+                #print("matched job %s: %s", i, m[0])
+                i += 1
+                myRet.append(m[0])
+            # zero out data for new incoming stuff
+            #print("zeroing out self data")
+            self.data = ""
+        #else:
+        #    #print("no match for workable data")
+        return myRet
+
+#
 # this picks apart the data from the teensy/esp and passes the sanitized
 # information over to update_midi()
 #
@@ -166,11 +210,11 @@ def analog_to_midival(data):
         except:
             print('bad split on regex! data: %s' % data, file=sys.stderr, flush=True)
             return
-        if (re.match('A\d', objKey)):
+        if (re.match('A\d+', objKey)):
             midival = (int(objVal) * 127) / 1024
             truncate = '%.02f' % midival
             midi_data[objKey] = truncate
-        if (re.match('D\d', objKey)):
+        if (re.match('D\d+', objKey)):
             midival = (int(objVal) * 127)
             midi_data[objKey] = midival
     # dict gets passed to another def for handling...
@@ -191,28 +235,30 @@ def start_tcp_to_midi_server():
 
     # tcp server object, create it
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # disable nagle
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     sock.bind(server_address)
 
     # Listen for incoming connections
     sys.stderr.write('starting up on %s port %s\n' % server_address)
     sock.listen(1)
 
+    myDataIntake = dataIntake()
+
     while True:
         # Wait for a connection
         connection, client_address = sock.accept()
         try:
-            # Receive the data in small chunks and deal with it
             while True:
+                # receive chunk of data
                 data = connection.recv(data_intake_limit).decode('utf-8')
-                regex = r'([AD]\d+:\d+\b;?)+$'
-                match = re.match(regex, data)
-                # if there's no regex match for the stuff, just continue
-                if match == None:
-                    continue
-                # else pass the data to the other logic
-                else:
-                    analog_to_midival(str(match.group()))
-
+                # update object with data
+                myDataIntake.update(data)
+                #print("Current working data is: %s" % myDataIntake.data)
+                # for every workable piece of data
+                for job in myDataIntake.get_workable_data():
+                    # update things
+                    analog_to_midival(job)
         finally:
             # Clean up the connection
             connection.close()
