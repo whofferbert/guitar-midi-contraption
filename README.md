@@ -38,10 +38,10 @@ Still works
 
 # Problems
 
-Pi script still is not configured to send midi data to the amidithru object, but that will be simple to implement.
+Probably the rpi script needs work and could be more pythonic.
 
-No sanity checking or SYN/ACK style reliability (aside from what the ESP does by default because of TCP)
+Probably the rest of it needs more polishing.
 
-probably the rpi script needs work and could be more pythonic.
+If the rpi server stops for some reason, the esp8266 will not reconnect until a power off/on (or reset)
 
-probably the rest of it needs more polishing.
+sometimes with power on, it seems to not initially update the midi state (IE midi switch is off, but software has state on, switch needs to be turned on and then off to put the software into an off state.)
