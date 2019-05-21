@@ -1,7 +1,11 @@
 # guitar-midi-contraption
+The funnest contraption. Not limited to guitars!
+
+---
+
 A collection of scripts for various pieces of hardware, which allow for wireless midi signalling with analog electronics
 
-Most things like IPs and ports are coded in multiple files, without a central config or build script.
+Most things like IPs and ports are coded in the files you would expect, without a central config or build script.
 
 ---
 
