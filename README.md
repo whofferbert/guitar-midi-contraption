@@ -8,6 +8,7 @@ Most things like IPs and ports are coded in multiple files, without a central co
 # RPI
 
 rpi/tcp-data-to-midi_server
+rpi/midiThing.py
 
 The script and class file for getting things running on the raspberry pi.
 
