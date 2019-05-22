@@ -5,7 +5,7 @@
  *  
  *  Read serial data and send to remote server
  *  
- *  some bits were gleaned from the internet (processIncomingByte)
+ *  some bits were gleaned from Internet research (processIncomingByte)
  */
 
 #include <ESP8266WiFi.h>
@@ -60,9 +60,9 @@ void setup() {
 
 void process_data (const char * data) {
   // push to wifi destination
-  
   client.print(data);
 }
+
 
 void processIncomingByte (const byte inByte) {
   static char input_line [MAX_INPUT];
