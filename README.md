@@ -11,7 +11,7 @@ Things like IPs and ports are coded in the files you would expect them to be. Th
 
 # RPI
 
-rpi/tcp-data-to-midi_server
+rpi/tcp-data-to-midi_server\
 rpi/midiThing.py
 
 The script and class file for getting things running on the Raspberry Pi (Pi 3 B+ used in this case, with MODEP).
@@ -20,7 +20,7 @@ TCP server + midi data transmission to whatever it gets connected to.
 
 PROBLEMS:
 
-Relies on os.system and some linux commands.
+Relies on os.system and some linux commands.\
 Not a real terrible problem I think, because: Raspberry Pi.
 
 ---
