@@ -1,11 +1,28 @@
 # guitar-midi-contraption
 The funnest contraption. Not limited to guitars!
 
----
+Parts + Teensy LC + ESP8266 + Raspberry Pi 3B+ = wireless midi!
 
-A collection of scripts for various pieces of hardware, which allow for wireless midi signalling with analog electronics
+This project is a collection of scripts for various pieces of hardware, which allow for wireless midi signalling with analog electronics
 
 Things like IPs and ports are coded in the files you would expect them to be. There are not many files (just a lot of moving parts)
+
+---
+
+# Background
+
+It should be easy enough for anyone to tweak the code as need be, to suit their own needs.
+
+This software, as is, currently operates attached to an electric guitar, which in turn is connected to a raspberry pi running MODEP, from BlokasLabs:\
+MODEP: https://github.com/BlokasLabs/modep
+
+The Teensy LC and the ESP8266 reside in the guitar, monitoring some potentiometers and switches, then sending that data to the Raspberry Pi wirelessly.
+
+The Raspberry Pi runs an additional server (tcp-data-to-midi_server), which translates the analog values gotten by ResponsiveAnalogRead and Bounce2 into the midi-compatible 0-127 range:
+ResponsiveAnalogRead: https://github.com/dxinteractive/ResponsiveAnalogRead\
+Bounce2: https://github.com/thomasfredericks/Bounce2
+
+That midi information is pushed out of the server via an amidithru (BlokasLabs again) device, which the MODEP software can connect to/use in various ways.
 
 ---
 
