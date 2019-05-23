@@ -89,7 +89,7 @@ def update_midi(data_keyvals):
             keyObj = globals()[key]
             keyObj.update(val)
             # if any objects have changed values
-            if globals()[key].has_changed():
+            if keyObj.has_changed():
                 #   send midi data
                 channel = keyObj.channel
                 ccNum = keyObj.ccNum
@@ -243,6 +243,7 @@ def start_tcp_to_midi_server():
     sys.stderr.write('starting up on %s port %s\n' % server_address)
     sock.listen(1)
 
+    # create object to slurp and parse input
     myDataIntake = dataIntake()
 
     while True:
